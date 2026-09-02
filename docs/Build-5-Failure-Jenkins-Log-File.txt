@@ -1,0 +1,392 @@
+Started by GitHub push by shiwanshu97
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins in /var/lib/jenkins/workspace/StreamingApp-CI-CD
+[Pipeline] {
+[Pipeline] sh
++ aws sts get-caller-identity --query Account --output text
+[Pipeline] sh
++ aws sts get-caller-identity --query Account --output text
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Checkout)
+[Pipeline] git
+The recommended git tool is: NONE
+No credentials specified
+ > git rev-parse --resolve-git-dir /var/lib/jenkins/workspace/StreamingApp-CI-CD/.git # timeout=10
+Fetching changes from the remote Git repository
+ > git config remote.origin.url https://github.com/shiwanshu97/StreamingApp.git # timeout=10
+Fetching upstream changes from https://github.com/shiwanshu97/StreamingApp.git
+ > git --version # timeout=10
+ > git --version # 'git version 2.43.0'
+ > git fetch --tags --force --progress -- https://github.com/shiwanshu97/StreamingApp.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+ > git rev-parse refs/remotes/origin/feature/devops^{commit} # timeout=10
+Checking out Revision 7153fd743329b2e8b2b6cded741c7f0ff026cbc7 (refs/remotes/origin/feature/devops)
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f 7153fd743329b2e8b2b6cded741c7f0ff026cbc7 # timeout=10
+ > git branch -a -v --no-abbrev # timeout=10
+ > git branch -D feature/devops # timeout=10
+ > git checkout -b feature/devops 7153fd743329b2e8b2b6cded741c7f0ff026cbc7 # timeout=10
+Commit message: "Fix formatting issue in README.md"
+ > git rev-list --no-walk 4bb8bd1a09c9f7d42979f4fe9cc0cac679c91ee8 # timeout=10
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Build Docker Images)
+[Pipeline] sh
++ set -e
++ docker build -f dockerfiles/frontend.Dockerfile -t streamingapp-frontend:5 .
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon  46.58MB
+Step 1/22 : FROM node:18-alpine AS build
+ ---> 8d6421d663b4
+Step 2/22 : WORKDIR /app
+ ---> Using cache
+ ---> 8750cdd117d7
+Step 3/22 : COPY frontend/package*.json ./
+ ---> Using cache
+ ---> 9338855b3056
+Step 4/22 : RUN npm ci
+ ---> Using cache
+ ---> fa792ab47bc1
+Step 5/22 : COPY frontend/ ./
+ ---> Using cache
+ ---> b60fdfd797a0
+Step 6/22 : ARG REACT_APP_AUTH_API_URL
+ ---> Using cache
+ ---> 77fb61acd2bb
+Step 7/22 : ARG REACT_APP_STREAMING_API_URL
+ ---> Using cache
+ ---> 420cc7f6b8e2
+Step 8/22 : ARG REACT_APP_STREAMING_PUBLIC_URL
+ ---> Using cache
+ ---> 1cdcc99170e8
+Step 9/22 : ARG REACT_APP_ADMIN_API_URL
+ ---> Using cache
+ ---> 86048366465a
+Step 10/22 : ARG REACT_APP_CHAT_API_URL
+ ---> Using cache
+ ---> 2082917bd0c3
+Step 11/22 : ARG REACT_APP_CHAT_SOCKET_URL
+ ---> Using cache
+ ---> 4b85042d182f
+Step 12/22 : ENV REACT_APP_AUTH_API_URL=$REACT_APP_AUTH_API_URL
+ ---> Using cache
+ ---> 345c3093c7b7
+Step 13/22 : ENV REACT_APP_STREAMING_API_URL=$REACT_APP_STREAMING_API_URL
+ ---> Using cache
+ ---> f2efaed84ada
+Step 14/22 : ENV REACT_APP_STREAMING_PUBLIC_URL=$REACT_APP_STREAMING_PUBLIC_URL
+ ---> Using cache
+ ---> 446d75291772
+Step 15/22 : ENV REACT_APP_ADMIN_API_URL=$REACT_APP_ADMIN_API_URL
+ ---> Using cache
+ ---> f2fbcc2895d3
+Step 16/22 : ENV REACT_APP_CHAT_API_URL=$REACT_APP_CHAT_API_URL
+ ---> Using cache
+ ---> 7deae41c1b4d
+Step 17/22 : ENV REACT_APP_CHAT_SOCKET_URL=$REACT_APP_CHAT_SOCKET_URL
+ ---> Using cache
+ ---> d956ab428fd7
+Step 18/22 : RUN npm run build
+ ---> Using cache
+ ---> ad31a1ff44e2
+Step 19/22 : FROM nginx:1.27-alpine AS production
+ ---> 65645c7bb6a0
+Step 20/22 : COPY --from=build /app/build /usr/share/nginx/html
+ ---> Using cache
+ ---> 4f1b4fbb3bc6
+Step 21/22 : EXPOSE 80
+ ---> Using cache
+ ---> 21ad93cabc36
+Step 22/22 : CMD ["nginx", "-g", "daemon off;"]
+ ---> Using cache
+ ---> 0fe45d05721e
+Successfully built 0fe45d05721e
+Successfully tagged streamingapp-frontend:5
++ docker build -f dockerfiles/auth.Dockerfile -t streamingapp-auth:5 .
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon  46.58MB
+Step 1/8 : FROM node:18-alpine AS production
+ ---> 8d6421d663b4
+Step 2/8 : WORKDIR /app
+ ---> Using cache
+ ---> 8750cdd117d7
+Step 3/8 : COPY backend/authService/package*.json ./
+ ---> Using cache
+ ---> 95c7bb3945a0
+Step 4/8 : RUN npm ci --omit=dev
+ ---> Using cache
+ ---> d483c486895f
+Step 5/8 : COPY backend/authService/ ./
+ ---> Using cache
+ ---> 37571a03bc00
+Step 6/8 : ENV NODE_ENV=production
+ ---> Using cache
+ ---> 7dcb3998239e
+Step 7/8 : EXPOSE 3001
+ ---> Using cache
+ ---> bd69cce59220
+Step 8/8 : CMD ["npm", "start"]
+ ---> Using cache
+ ---> bd412bd8dc0f
+Successfully built bd412bd8dc0f
+Successfully tagged streamingapp-auth:5
++ docker build -f dockerfiles/streaming.Dockerfile -t streamingapp-streaming:5 .
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon  46.58MB
+Step 1/8 : FROM node:18-alpine AS production
+ ---> 8d6421d663b4
+Step 2/8 : WORKDIR /app
+ ---> Using cache
+ ---> 8750cdd117d7
+Step 3/8 : COPY backend/streamingService/package*.json ./
+ ---> Using cache
+ ---> c87935e5c367
+Step 4/8 : RUN npm ci --omit=dev
+ ---> Using cache
+ ---> 1b505b6188a8
+Step 5/8 : COPY backend/streamingService/ ./
+ ---> Using cache
+ ---> f9a18d5993e4
+Step 6/8 : ENV NODE_ENV=production
+ ---> Using cache
+ ---> 86de836395d3
+Step 7/8 : EXPOSE 3002
+ ---> Using cache
+ ---> 71f96ec9b2ff
+Step 8/8 : CMD ["npm", "start"]
+ ---> Using cache
+ ---> 539368c3f083
+Successfully built 539368c3f083
+Successfully tagged streamingapp-streaming:5
++ docker build -f dockerfiles/admin.Dockerfile -t streamingapp-admin:5 .
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon  46.58MB
+Step 1/8 : FROM node:18-alpine AS production
+ ---> 8d6421d663b4
+Step 2/8 : WORKDIR /app
+ ---> Using cache
+ ---> 8750cdd117d7
+Step 3/8 : COPY backend/adminService/package*.json ./
+ ---> Using cache
+ ---> 1630f25c84ec
+Step 4/8 : RUN npm ci --omit=dev
+ ---> Using cache
+ ---> 7c0a9fcb30d0
+Step 5/8 : COPY backend/adminService/ ./
+ ---> Using cache
+ ---> 32c4cd9ec9df
+Step 6/8 : ENV NODE_ENV=production
+ ---> Using cache
+ ---> bd8445cc755b
+Step 7/8 : EXPOSE 3003
+ ---> Using cache
+ ---> 64c342678bfb
+Step 8/8 : CMD ["npm", "start"]
+ ---> Using cache
+ ---> 16a7874e1728
+Successfully built 16a7874e1728
+Successfully tagged streamingapp-admin:5
++ docker build -f dockerfiles/chat.Dockerfile -t streamingapp-chat:5 .
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon  46.58MB
+Step 1/8 : FROM node:18-alpine AS production
+ ---> 8d6421d663b4
+Step 2/8 : WORKDIR /app
+ ---> Using cache
+ ---> 8750cdd117d7
+Step 3/8 : COPY backend/chatService/package*.json ./
+ ---> Using cache
+ ---> 6fb45435bcb8
+Step 4/8 : RUN npm ci --omit=dev
+ ---> Using cache
+ ---> 3a6295d9dd6f
+Step 5/8 : COPY backend/chatService/ ./
+ ---> Using cache
+ ---> a17d17c6261a
+Step 6/8 : ENV NODE_ENV=production
+ ---> Using cache
+ ---> 99e5ca183e11
+Step 7/8 : EXPOSE 3004
+ ---> Using cache
+ ---> f21ac49440fe
+Step 8/8 : CMD ["npm", "start"]
+ ---> Using cache
+ ---> 2b94dd1f6807
+Successfully built 2b94dd1f6807
+Successfully tagged streamingapp-chat:5
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Login to ECR)
+[Pipeline] withCredentials
+Masking supported pattern matches of $AWS_ACCESS_KEY_ID or $AWS_SECRET_ACCESS_KEY
+[Pipeline] {
+[Pipeline] sh
++ set -e
++ aws ecr get-login-password --region ap-south-1
++ docker login --username AWS --password-stdin 360999005537.dkr.ecr.ap-south-1.amazonaws.com
+
+WARNING! Your credentials are stored unencrypted in '/var/lib/jenkins/.docker/config.json'.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/go/credential-store/
+
+Login Succeeded
+[Pipeline] }
+[Pipeline] // withCredentials
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Tag Images)
+[Pipeline] sh
++ set -e
++ docker tag streamingapp-frontend:5 360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-frontend:5
++ docker tag streamingapp-auth:5 360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-auth:5
++ docker tag streamingapp-streaming:5 360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-streaming:5
++ docker tag streamingapp-admin:5 360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-admin:5
++ docker tag streamingapp-chat:5 360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-chat:5
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Push Images to ECR)
+[Pipeline] sh
++ set -e
++ docker push 360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-frontend:5
+The push refers to repository [360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-frontend]
+138e9d5e15e2: Layer already exists
+d7e507024086: Layer already exists
+197eb75867ef: Layer already exists
+34a64644b756: Layer already exists
+39c2ddfd6010: Layer already exists
+f18232174bc9: Layer already exists
+61ca4f733c80: Layer already exists
+b464cfdf2a63: Layer already exists
+81bd8ed7ec67: Layer already exists
+5: digest: sha256:0fe45d05721eadcc974137ebd7f38dde671130d48c769c37c5c3a8b2a6a1f1c2 size: 2264
++ docker push 360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-auth:5
+The push refers to repository [360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-auth]
+f18232174bc9: Layer already exists
+dd71dde834b5: Layer already exists
+1e5a4c89cee5: Layer already exists
+25ff2da83641: Layer already exists
+26a8c5b76c7c: Layer already exists
+11424c07f7bd: Layer already exists
+ece3c86e1b29: Layer already exists
+43aa934e7b5a: Layer already exists
+5: digest: sha256:bd412bd8dc0f229cddcd288cafa7beec6ef6ad8c72119f189771c18647cfb622 size: 2057
++ docker push 360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-streaming:5
+The push refers to repository [360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-streaming]
+1e5a4c89cee5: Layer already exists
+8abc681895db: Layer already exists
+98ff2c6a195f: Layer already exists
+25ff2da83641: Layer already exists
+26a8c5b76c7c: Layer already exists
+fa879db1e317: Layer already exists
+f18232174bc9: Layer already exists
+dd71dde834b5: Layer already exists
+5: digest: sha256:539368c3f083a5022f84b9eb2bf78ae5448f10b702f30554011946958cc9e77b size: 2061
++ docker push 360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-admin:5
+The push refers to repository [360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-admin]
+d4075818607d: Layer already exists
+47a96f96e9ad: Layer already exists
+f18232174bc9: Layer already exists
+dd71dde834b5: Layer already exists
+3e6afb056660: Layer already exists
+1e5a4c89cee5: Layer already exists
+25ff2da83641: Layer already exists
+26a8c5b76c7c: Layer already exists
+5: digest: sha256:16a7874e17285de169c0dc1a751bb01ebf772a73317e1dd12a972f2917aadad5 size: 2057
++ docker push 360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-chat:5
+The push refers to repository [360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-chat]
+f92d47319059: Layer already exists
+5cd3e854f78c: Layer already exists
+f18232174bc9: Layer already exists
+dd71dde834b5: Layer already exists
+1e5a4c89cee5: Layer already exists
+25ff2da83641: Layer already exists
+26a8c5b76c7c: Layer already exists
+9eff26122504: Layer already exists
+5: digest: sha256:2b94dd1f680709d7f6249009aa31da907d59de2de53237a868ab5358dba7b9f4 size: 2056
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Configure EKS Access)
+[Pipeline] sh
++ set -e
++ aws eks update-kubeconfig --region ap-south-1 --name streamingapp-eks
+Updated context arn:aws:eks:ap-south-1:360999005537:cluster/streamingapp-eks in /var/lib/jenkins/.kube/config
++ kubectl get nodes
+NAME                                            STATUS   ROLES    AGE   VERSION
+ip-192-168-20-158.ap-south-1.compute.internal   Ready    <none>   76m   v1.34.10-eks-cb19647
+ip-192-168-62-94.ap-south-1.compute.internal    Ready    <none>   76m   v1.34.10-eks-cb19647
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Deploy with Helm)
+[Pipeline] sh
++ set -e
++ helm upgrade --install streamingapp ./helm/streamingapp --set images.frontend.tag=5 --set images.auth.tag=5 --set images.streaming.tag=5 --set images.admin.tag=5 --set images.chat.tag=5 --wait --timeout 10s
+Error: UPGRADE FAILED: context deadline exceeded
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Verify Deployment)
+Stage "Verify Deployment" skipped due to earlier failure(s)
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Send SNS Success Notification)
+Stage "Send SNS Success Notification" skipped due to earlier failure(s)
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Declarative: Post Actions)
+[Pipeline] echo
+StreamingApp pipeline finished: FAILURE
+[Pipeline] echo
+StreamingApp CI/CD pipeline failed.
+[Pipeline] script
+[Pipeline] {
+[Pipeline] sh
++ aws sns publish --topic-arn arn:aws:sns:ap-south-1:360999005537:StreamingApp-Deployment-Events --subject StreamingApp Deployment FAILED - Build #5 --message StreamingApp deployment failed.
+
+Jenkins Job: StreamingApp-CI-CD
+Build Number: 5
+Build URL: http://13.204.255.11:8080/job/StreamingApp-CI-CD/5/
+EKS Cluster: streamingapp-eks
+AWS Region: ap-south-1
+
+Please check the Jenkins console output for details. --region ap-south-1
+{
+    "MessageId": "6eb7cbf7-5a3f-57a8-bac0-a8e550525cf5"
+}
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+ERROR: script returned exit code 1
+Finished: FAILURE

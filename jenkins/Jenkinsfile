@@ -1,0 +1,251 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = 'ap-south-1'
+
+        AWS_ACCOUNT_ID = sh(
+            script: "aws sts get-caller-identity --query Account --output text",
+            returnStdout: true
+        ).trim()
+
+        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+
+        EKS_CLUSTER = 'streamingapp-eks'
+        HELM_RELEASE = 'streamingapp'
+        HELM_CHART = './helm/streamingapp'
+
+        SNS_TOPIC_ARN = 'arn:aws:sns:ap-south-1:360999005537:StreamingApp-Deployment-Events'
+
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'feature/devops',
+                    url: 'https://github.com/shiwanshu97/StreamingApp.git'
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                sh '''
+                    set -e
+
+                    docker build \
+                        -f dockerfiles/frontend.Dockerfile \
+                        -t streamingapp-frontend:${IMAGE_TAG} .
+
+                    docker build \
+                        -f dockerfiles/auth.Dockerfile \
+                        -t streamingapp-auth:${IMAGE_TAG} .
+
+                    docker build \
+                        -f dockerfiles/streaming.Dockerfile \
+                        -t streamingapp-streaming:${IMAGE_TAG} .
+
+                    docker build \
+                        -f dockerfiles/admin.Dockerfile \
+                        -t streamingapp-admin:${IMAGE_TAG} .
+
+                    docker build \
+                        -f dockerfiles/chat.Dockerfile \
+                        -t streamingapp-chat:${IMAGE_TAG} .
+                '''
+            }
+        }
+
+        stage('Login to ECR') {
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-ecr']
+                ]) {
+                    sh '''
+                        set -e
+
+                        aws ecr get-login-password \
+                            --region $AWS_REGION |
+                        docker login \
+                            --username AWS \
+                            --password-stdin $ECR_REGISTRY
+                    '''
+                }
+            }
+        }
+
+        stage('Tag Images') {
+            steps {
+                sh '''
+                    set -e
+
+                    docker tag streamingapp-frontend:${IMAGE_TAG} \
+                        $ECR_REGISTRY/streamingapp-frontend:${IMAGE_TAG}
+
+                    docker tag streamingapp-auth:${IMAGE_TAG} \
+                        $ECR_REGISTRY/streamingapp-auth:${IMAGE_TAG}
+
+                    docker tag streamingapp-streaming:${IMAGE_TAG} \
+                        $ECR_REGISTRY/streamingapp-streaming:${IMAGE_TAG}
+
+                    docker tag streamingapp-admin:${IMAGE_TAG} \
+                        $ECR_REGISTRY/streamingapp-admin:${IMAGE_TAG}
+
+                    docker tag streamingapp-chat:${IMAGE_TAG} \
+                        $ECR_REGISTRY/streamingapp-chat:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('Push Images to ECR') {
+            steps {
+                sh '''
+                    set -e
+
+                    docker push \
+                        $ECR_REGISTRY/streamingapp-frontend:${IMAGE_TAG}
+
+                    docker push \
+                        $ECR_REGISTRY/streamingapp-auth:${IMAGE_TAG}
+
+                    docker push \
+                        $ECR_REGISTRY/streamingapp-streaming:${IMAGE_TAG}
+
+                    docker push \
+                        $ECR_REGISTRY/streamingapp-admin:${IMAGE_TAG}
+
+                    docker push \
+                        $ECR_REGISTRY/streamingapp-chat:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('Configure EKS Access') {
+            steps {
+                sh '''
+                    set -e
+
+                    aws eks update-kubeconfig \
+                        --region $AWS_REGION \
+                        --name $EKS_CLUSTER
+
+                    kubectl get nodes
+                '''
+            }
+        }
+
+        stage('Deploy with Helm') {
+    steps {
+        sh '''
+            set -e
+
+            helm upgrade --install $HELM_RELEASE $HELM_CHART \
+                --set images.frontend.repository=$ECR_REGISTRY/streamingapp-frontend \
+                --set images.frontend.tag=${IMAGE_TAG} \
+                --set images.auth.repository=$ECR_REGISTRY/streamingapp-auth \
+                --set images.auth.tag=${IMAGE_TAG} \
+                --set images.streaming.repository=$ECR_REGISTRY/streamingapp-streaming \
+                --set images.streaming.tag=${IMAGE_TAG} \
+                --set images.admin.repository=$ECR_REGISTRY/streamingapp-admin \
+                --set images.admin.tag=${IMAGE_TAG} \
+                --set images.chat.repository=$ECR_REGISTRY/streamingapp-chat \
+                --set images.chat.tag=${IMAGE_TAG} \
+                --wait \
+                --timeout 10m
+        '''
+    }
+}
+
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                    set -e
+
+                    kubectl get deployments
+                    kubectl get pods
+                    kubectl get services
+
+                    kubectl rollout status \
+                        deployment/streamingapp-frontend \
+                        --timeout=5m
+
+                    kubectl rollout status \
+                        deployment/streamingapp-auth \
+                        --timeout=5m
+
+                    kubectl rollout status \
+                        deployment/streamingapp-streaming \
+                        --timeout=5m
+
+                    kubectl rollout status \
+                        deployment/streamingapp-admin \
+                        --timeout=5m
+
+                    kubectl rollout status \
+                        deployment/streamingapp-chat \
+                        --timeout=5m
+                '''
+            }
+        }
+
+        stage('Send SNS Success Notification') {
+            steps {
+                sh '''
+                    set -e
+
+                    aws sns publish \
+                        --topic-arn "$SNS_TOPIC_ARN" \
+                        --subject "StreamingApp Deployment SUCCESS - Build #${BUILD_NUMBER}" \
+                        --message "StreamingApp deployment completed successfully.
+
+Jenkins Job: ${JOB_NAME}
+Build Number: ${BUILD_NUMBER}
+Build URL: ${BUILD_URL}
+EKS Cluster: ${EKS_CLUSTER}
+Helm Release: ${HELM_RELEASE}
+Image Tag: ${IMAGE_TAG}
+AWS Region: ${AWS_REGION}" \
+                        --region $AWS_REGION
+                '''
+            }
+        }
+    }
+
+    post {
+
+        success {
+            echo 'StreamingApp CI/CD pipeline completed successfully.'
+            echo 'Docker images pushed to ECR.'
+            echo 'Helm deployment completed on EKS.'
+            echo 'SNS success notification sent.'
+        }
+
+        failure {
+            echo 'StreamingApp CI/CD pipeline failed.'
+
+            script {
+                sh '''
+                    aws sns publish \
+                        --topic-arn "$SNS_TOPIC_ARN" \
+                        --subject "StreamingApp Deployment FAILED - Build #${BUILD_NUMBER}" \
+                        --message "StreamingApp deployment failed.
+
+Jenkins Job: ${JOB_NAME}
+Build Number: ${BUILD_NUMBER}
+Build URL: ${BUILD_URL}
+EKS Cluster: ${EKS_CLUSTER}
+AWS Region: ${AWS_REGION}
+
+Please check the Jenkins console output for details." \
+                        --region $AWS_REGION || true
+                '''
+            }
+        }
+
+        always {
+            echo "StreamingApp pipeline finished: ${currentBuild.currentResult}"
+        }
+    }
+}

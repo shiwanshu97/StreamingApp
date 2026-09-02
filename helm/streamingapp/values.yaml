@@ -1,31 +1,41 @@
 replicaCount: 1
 
 images:
+
   auth:
-    repository: streamingapp-auth
-    tag: test
+    repository: 360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-auth
+    tag: latest
+
   streaming:
-    repository: streamingapp-streaming
-    tag: test
+    repository: 360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-streaming
+    tag: latest
+
   admin:
-    repository: streamingapp-admin
-    tag: test
+    repository: 360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-admin
+    tag: latest
+
   chat:
-    repository: streamingapp-chat
-    tag: test
+    repository: 360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-chat
+    tag: latest
+
   frontend:
-    repository: streamingapp-frontend
-    tag: test
+    repository: 360999005537.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-frontend
+    tag: latest
 
 services:
+
   auth:
     port: 3001
+
   streaming:
     port: 3002
+
   admin:
     port: 3003
+
   chat:
     port: 3004
+
   frontend:
     port: 80
 
