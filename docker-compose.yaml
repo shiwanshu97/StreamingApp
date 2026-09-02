@@ -1,0 +1,97 @@
+services:
+  mongo:
+    image: mongo:6
+    container_name: streamingapp-mongo-dev
+    restart: unless-stopped
+    volumes:
+      - mongo-data-dev:/data/db
+    networks:
+      - streamingapp-dev
+    ports:
+      - "27017:27017"
+
+  auth:
+    image: streamingapp-auth:test
+    container_name: streamingapp-auth-dev
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      MONGO_URI: mongodb://mongo:27017/streamingapp
+      JWT_SECRET: changeme
+      CLIENT_URLS: http://localhost:3000
+    depends_on:
+      - mongo
+    networks:
+      - streamingapp-dev
+    ports:
+      - "3001:3001"
+
+  streaming:
+    image: streamingapp-streaming:test
+    container_name: streamingapp-streaming-dev
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      MONGO_URI: mongodb://mongo:27017/streamingapp
+      JWT_SECRET: changeme
+      CLIENT_URLS: http://localhost:3000
+      STREAMING_PUBLIC_URL: http://localhost:3002
+    depends_on:
+      - mongo
+    networks:
+      - streamingapp-dev
+    ports:
+      - "3002:3002"
+
+  admin:
+    image: streamingapp-admin:test
+    container_name: streamingapp-admin-dev
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      MONGO_URI: mongodb://mongo:27017/streamingapp
+      JWT_SECRET: changeme
+      CLIENT_URLS: http://localhost:3000
+    depends_on:
+      - mongo
+    networks:
+      - streamingapp-dev
+    ports:
+      - "3003:3003"
+
+  chat:
+    image: streamingapp-chat:test
+    container_name: streamingapp-chat-dev
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      MONGO_URI: mongodb://mongo:27017/streamingapp
+      JWT_SECRET: changeme
+      CLIENT_URLS: http://localhost:3000
+    depends_on:
+      - mongo
+    networks:
+      - streamingapp-dev
+    ports:
+      - "3004:3004"
+
+  frontend:
+    image: streamingapp-frontend:test
+    container_name: streamingapp-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - streamingapp-dev
+
+networks:
+  streamingapp-dev:
+    name: streamingapp-dev
+
+volumes:
+  mongo-data-dev:
+    name: streamingapp-mongo-data-dev

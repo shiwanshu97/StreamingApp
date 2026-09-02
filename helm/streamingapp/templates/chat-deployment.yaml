@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-chat
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-chat
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-chat
+    spec:
+      containers:
+        - name: chat
+          image: "{{ .Values.images.chat.repository }}:{{ .Values.images.chat.tag }}"
+          ports:
+            - containerPort: {{ .Values.services.chat.port }}
+          env:
+            - name: NODE_ENV
+              value: development
+            - name: PORT
+              value: {{ .Values.services.chat.port | quote }}
+            - name: MONGO_URI
+              value: "mongodb://{{ .Release.Name }}-mongo:{{ .Values.mongo.port }}/{{ .Values.mongo.database }}"
+            - name: JWT_SECRET
+              value: changeme
+            - name: CLIENT_URLS
+              value: "http://{{ .Release.Name }}-frontend"

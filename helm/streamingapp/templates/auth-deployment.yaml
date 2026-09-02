@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-auth
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-auth
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-auth
+    spec:
+      containers:
+        - name: auth
+          image: "{{ .Values.images.auth.repository }}:{{ .Values.images.auth.tag }}"
+          ports:
+            - containerPort: {{ .Values.services.auth.port }}
+          env:
+            - name: NODE_ENV
+              value: development
+            - name: PORT
+              value: {{ .Values.services.auth.port | quote }}
+            - name: MONGO_URI
+              value: "mongodb://{{ .Release.Name }}-mongo:{{ .Values.mongo.port }}/{{ .Values.mongo.database }}"
+            - name: JWT_SECRET
+              value: changeme
+            - name: CLIENT_URLS
+              value: "http://{{ .Release.Name }}-frontend"

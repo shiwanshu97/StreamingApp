@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-streaming
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-streaming
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-streaming
+    spec:
+      containers:
+        - name: streaming
+          image: "{{ .Values.images.streaming.repository }}:{{ .Values.images.streaming.tag }}"
+          ports:
+            - containerPort: {{ .Values.services.streaming.port }}
+          env:
+            - name: NODE_ENV
+              value: development
+            - name: PORT
+              value: {{ .Values.services.streaming.port | quote }}
+            - name: MONGO_URI
+              value: "mongodb://{{ .Release.Name }}-mongo:{{ .Values.mongo.port }}/{{ .Values.mongo.database }}"
+            - name: JWT_SECRET
+              value: changeme
+            - name: CLIENT_URLS
+              value: "http://{{ .Release.Name }}-frontend"
+            - name: STREAMING_PUBLIC_URL
+              value: "http://{{ .Release.Name }}-streaming:{{ .Values.services.streaming.port }}"

@@ -1,0 +1,35 @@
+replicaCount: 1
+
+images:
+  auth:
+    repository: streamingapp-auth
+    tag: test
+  streaming:
+    repository: streamingapp-streaming
+    tag: test
+  admin:
+    repository: streamingapp-admin
+    tag: test
+  chat:
+    repository: streamingapp-chat
+    tag: test
+  frontend:
+    repository: streamingapp-frontend
+    tag: test
+
+services:
+  auth:
+    port: 3001
+  streaming:
+    port: 3002
+  admin:
+    port: 3003
+  chat:
+    port: 3004
+  frontend:
+    port: 80
+
+mongo:
+  image: mongo:6
+  port: 27017
+  database: streamingapp

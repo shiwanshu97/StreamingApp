@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-streaming
+spec:
+  selector:
+    app: {{ .Release.Name }}-streaming
+  ports:
+    - port: {{ .Values.services.streaming.port }}
+      targetPort: {{ .Values.services.streaming.port }}
+  type: ClusterIP

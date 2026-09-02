@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-admin
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-admin
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-admin
+    spec:
+      containers:
+        - name: admin
+          image: "{{ .Values.images.admin.repository }}:{{ .Values.images.admin.tag }}"
+          ports:
+            - containerPort: {{ .Values.services.admin.port }}
+          env:
+            - name: NODE_ENV
+              value: development
+            - name: PORT
+              value: {{ .Values.services.admin.port | quote }}
+            - name: MONGO_URI
+              value: "mongodb://{{ .Release.Name }}-mongo:{{ .Values.mongo.port }}/{{ .Values.mongo.database }}"
+            - name: JWT_SECRET
+              value: changeme
+            - name: CLIENT_URLS
+              value: "http://{{ .Release.Name }}-frontend"
